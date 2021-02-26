@@ -2,9 +2,11 @@ let uplot;
 let draw_data = [];
 let ctx;
 
+// initialize uPlot (it's amazing btw)
 function draw_init() {
     let series = [];
 
+    // We need an extra series because ... otherwise theres a bug? idk, it works
     series.push(getDotSeries(theme.marv));
     series.push(getDotSeries(theme.marv));
     series.push(getDotSeries(theme.perf));
@@ -17,6 +19,7 @@ function draw_init() {
         width: width,
         height: height,
         series: series,
+        // Disable ALL the stuff, sorry (:
         axes: [
             {show: false,grid: {show: false}},
             {show: false,grid: {show: false}},
@@ -24,6 +27,7 @@ function draw_init() {
         legend: {
             show: false
         },
+        // this took ages to find
         scales: {
             y: {
                 range: { 
@@ -32,6 +36,7 @@ function draw_init() {
                 }
             }
         },
+        // do some :sunglasses: stuff
         plugins: [
             interface_plugin()
         ]
@@ -41,11 +46,14 @@ function draw_init() {
     demo()
 }
 
+// trial and error don't touch
 function getMsDistanceOverHeight(ms) {
     return ms/167*(height/2+10);
 }
 
+// coolest thing tbh
 function interface_plugin() {
+    // draw behind ~~enemy lines~~ the scatter (markdown in comments when)
     function init(u) {
         u.ctx.save();
 
@@ -84,7 +92,12 @@ function interface_plugin() {
     
     return {
         hooks: {
+            // init is ... useless i guess for drawing
+            // draw clear is before points
             drawClear: init,
+            // draw is after
+
+            // didnt look into it further
         }
     };
 }
@@ -96,12 +109,24 @@ function getDotSeries(color) {
         size: 5,
         paths: u => null,
         points: {
-            fill:color,
+            fill:color, // it has to be here ... far from stroke, idk why
             space: 0
         },
     }
 }
 
+// notes are a pair [offset,error]
+// index starts at 0 (marv)
+function appendNotes(index, notes) {
+    for(let i = 0; i <= notes.length; i++) {
+        draw_data[index][0].push(notes[i][0]);
+        draw_data[index][1].push(notes[i][1]);
+    }
+    uplot.setData(uPlot.join(draw_data));
+}
+
+// Demo stuff
+// it's cool, try it
 let demo_current_ms = 0;
 function getNextRandomNote() {
     demo_current_ms += Math.floor(Math.max(Math.random()*150 - 30, 0));
@@ -119,14 +144,6 @@ function getNextRandomNote() {
 
     res[1] = Math.floor(res[1]);
     return res;
-}
-
-function appendNotes(notes) {
-    for(let i = 0; i <= notes.length; i++) {
-        draw_data[index][0].push(notes[i][0]);
-        draw_data[index][1].push(notes[i][1]);
-    }
-    uplot.setData(uPlot.join(draw_data));
 }
 
 let demo_stopped = false;
