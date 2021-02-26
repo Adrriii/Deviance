@@ -137,7 +137,7 @@ function appendNotes(notes) {
         draw_data[index][1].push(note[1]);
     }
     uplot.setData(uPlot.join(draw_data));
-    uplot.setScale("y", {min: -167, max: 167});
+    uplot.setScale("y", {min: -od_miss_ms, max: od_miss_ms});
 }
 
 function getIndexOfJudge(judge) {

@@ -20,13 +20,13 @@ let last_ping = 0;
 socketData.onmessage = async event => {
 	try {
 		data = JSON.parse(event.data);
-		console.log("Obtained data");
 		last_ping = Date.now();
 
 		if(data.osu_status != last_status) {
 			last_status = data.osu_status;
-			resetAll();
-			console.log("Status changed to "+last_status);
+			if(last_status != "Rank")
+				resetAll();
+			console.log("Status changed to "+last_status+ " "+keys+"k");
 		}
 		
 		if(!data.hit_events) {
@@ -43,7 +43,7 @@ socketData.onmessage = async event => {
 draw_init();
 
 function reinitMessage() {
-	setTimeout(() => {socketData.send("Start");}, 100);
+	setTimeout(() => {socketData.send("Start");}, 250);
 }
 
 setInterval(() => {

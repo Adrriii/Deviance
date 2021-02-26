@@ -76,7 +76,7 @@ function parseHitObjects() {
 // since osu has a brilliant way to store hitobjects
 // we get to have this beautiful shit
 function getColumnFromX(keys, x) {
-    return Math.trunc(x/512*keys);
+    return Math.trunc((x/512)*keys);
 }
 
 // Will try to process the data until beatmap is ready then loop over
@@ -99,7 +99,6 @@ let processed_hits = []; // all the notes that have been pressed and possibly re
 let state = {}; // the last state of each key
 
 function resetAll() {
-    console.log("Refresh");
     columns = {};
     replay_parse_index = 2;
     replay_hits = [];
@@ -120,6 +119,7 @@ function resetAll() {
 // Add latest hits from current replay data
 // needs up to date data
 function parseReplayHits() {
+    if(replay_parse_index > data.hit_events.length) resetAll();
     for(replay_parse_index; replay_parse_index < data.hit_events.length; replay_parse_index++) {
         let event = data.hit_events[replay_parse_index];
 
@@ -134,7 +134,7 @@ function parseReplayHits() {
                 if(state[k] != current_k) {
                     let hit = {
                         time: event.TimeStamp,
-                        column: 3-k
+                        column: (keys-1)-k
                     };
                     if(state[k] == 0) {
                         hit.type = "press";
@@ -153,30 +153,46 @@ function parseReplayHits() {
 function processHits() {
     let hit;
     while(hit = replay_hits.shift()) {
-        if(!columns[hit.column].length > 0) continue;
-        let note = columns[hit.column][0];
-        let hitError;
-        
-        if(hit.type == "press") {
-            hitError = hit.time - note.time;
-        } else if (hit.type == "release") {
-            if(note.ln === false) continue; 
-            hitError = hit.time - note.ln;
-        }
-        
-        let found = false;
-        
-        if (hitError >= -(od_miss_ms)){
-            found = true;
-        }
-
-        if(found) {
-            note.errors.push(hitError);
-            processed_hits.push(note);
-            if(note.ln !== false && hit.type != "release") continue;
-            columns[hit.column].shift();
-        }
+        processHit(hit);
     }
+}
+
+function processHit(hit) {
+    if(!columns[hit.column]) return; // this is in case the map has no note on the column ... #timingtest
+    if(!columns[hit.column].length > 0) return;
+    let note = columns[hit.column][0];
+    let hitError;
+    
+    if(hit.type == "press") {
+        hitError = hit.time - note.time;
+    } else if (hit.type == "release") {
+        if(note.ln === false || note.errors.length == 0) return; 
+        hitError = hit.time - note.ln;
+    }
+    
+    let found = false;
+    let lnbreak = false;
+    if (hitError >= -(od_miss_ms)){
+        found = true;
+    } else if(hit.type == "release" && hit.time >= note.time && hit.ln!==false) {
+        found = true;
+        lnbreak = true;
+    }
+
+    if(found) {
+        if(hitError > od_miss_ms) hitError = od_miss_ms;
+        if(lnbreak) {
+            note.errors = [od_100_ms+3];
+        }
+        else {
+            note.errors.push(hitError);
+        }
+        if(note.ln !== false && hit.type != "release" && !lnbreak) return;
+        processed_hits.push(note);
+        columns[hit.column].shift();
+    }
+
+    if(hitError >= od_miss_ms) processHit(hit);
 }
 
 // these are used to process bitwise keyboard state
