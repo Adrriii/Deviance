@@ -90,10 +90,12 @@ function interface_plugin() {
     function drawOver(u) {
         u.ctx.save();
 
-        let dst = getMsDistanceOverWidth(current_time);
-        u.ctx.fillStyle = theme.caret;
+        if(displayCaret && replay) {
+            let dst = getMsDistanceOverWidth(current_time);
+            u.ctx.fillStyle = theme.caret;
 
-        u.ctx.fillRect(dst, 0, 1, height);
+            u.ctx.fillRect(dst, 0, 1, height);
+        }
         
 		u.ctx.restore();
     }

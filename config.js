@@ -2,6 +2,8 @@
 const width = 905;
 const height = 350;
 
+const displayCaret = true;
+
 const themes = {
     etterna: {
         background: "rgba(36,36,36,1)",

@@ -111,6 +111,7 @@ function resetAll() {
     columns = {};
     replay_parse_index = 2;
     replay_hits = [];
+    replay = false;
     processed_hits = [];
     state = {};
     draw_data = [
@@ -128,6 +129,7 @@ function resetAll() {
 // Add latest hits from current replay data
 // needs up to date data
 let ranking = false;
+let replay = false;
 function parseReplayHits() {
     if(!ranking && replay_parse_index > data.hit_events.length) resetAll();
     for(replay_parse_index; replay_parse_index < data.hit_events.length; replay_parse_index++) {
@@ -153,6 +155,8 @@ function parseReplayHits() {
                     }
                     state[k] = current_k;
                     replay_hits.push(hit);
+
+                    if(event.TimeStamp > current_time+1000) replay = true;
                 }
             }
         }
