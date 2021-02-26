@@ -28,15 +28,6 @@ function draw_init() {
         legend: {
             show: false
         },
-        // this took ages to find
-        scales: {
-            y: {
-                range: { 
-                    min: -167, 
-                    max: 167
-                }
-            }
-        },
         // do some :sunglasses: stuff
         plugins: [
             interface_plugin()
@@ -146,6 +137,7 @@ function appendNotes(notes) {
         draw_data[index][1].push(note[1]);
     }
     uplot.setData(uPlot.join(draw_data));
+    uplot.setScale("y", {min: -167, max: 167});
 }
 
 function getIndexOfJudge(judge) {

@@ -23,7 +23,6 @@ socketData.onmessage = async event => {
 		console.log("Obtained data");
 		last_ping = Date.now();
 
-		console.log(data);
 		if(data.osu_status != last_status) {
 			last_status = data.osu_status;
 			resetAll();

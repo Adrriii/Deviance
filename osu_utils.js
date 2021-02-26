@@ -113,6 +113,7 @@ function resetAll() {
         [[],[]],
         [[],[]],
     ];
+    uplot.setData(uPlot.join(draw_data));
     parseHitObjects();
 }
 
