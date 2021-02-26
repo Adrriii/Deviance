@@ -15,7 +15,6 @@ let loaded_last=null;
 function GetBeatmapCache(song_path) {
 	return new Promise((resolve, reject) => {
 		if(beatmap != null && loaded_last == song_path) {
-			if(beatmap == "working") reject();
 			resolve();
 			return;
 		}
@@ -44,6 +43,7 @@ function GetBeatmapCache(song_path) {
 // it's time to appreciate the osu format for mania
 function parseHitObjects() {
 	let objects = false;
+    if(!beatmap) return;
 	beatmap.split(/\r?\n/).forEach((line) => {
 		if(objects && line) {
 			let d = line.split(",");
@@ -90,7 +90,7 @@ function tryProcess() {
     processHits();
     addProcessedHitsToData();
 
-    socketData.send("Continue");
+    reinitMessage()
 }
 
 let replay_parse_index = 2; // ignore first 2 lines ; this is used to not look at the entire replay each time
@@ -103,14 +103,16 @@ function resetAll() {
     columns = {};
     replay_parse_index = 2;
     replay_hits = [];
-    hit_miss_array = [];
-    hit_50_array = [];
-    hit_100_array = [];
-    hit_200_array = [];
-    hit_300_array = [];
-    hit_300g_array = [];
     processed_hits = [];
     state = {};
+    draw_data = [
+        [[],[]],
+        [[],[]],
+        [[],[]],
+        [[],[]],
+        [[],[]],
+        [[],[]],
+    ];
     parseHitObjects();
 }
 

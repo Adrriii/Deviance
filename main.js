@@ -15,13 +15,23 @@ socket.onmessage = async event => {
 
 // This is sort of the main loop of the program
 // It's triggered after sending a message to the websocket, when getting the reply
+let last_status = "";
+let last_ping = 0;
 socketData.onmessage = async event => {
 	try {
 		data = JSON.parse(event.data);
 		console.log("Obtained data");
+		last_ping = Date.now();
 
+		console.log(data);
+		if(data.osu_status != last_status) {
+			last_status = data.osu_status;
+			resetAll();
+			console.log("Status changed to "+last_status);
+		}
+		
 		if(!data.hit_events) {
-			socketData.send("Start");
+			reinitMessage();
 			return;
 		}
 
@@ -33,6 +43,16 @@ socketData.onmessage = async event => {
 
 draw_init();
 
+function reinitMessage() {
+	setTimeout(() => {socketData.send("Start");}, 100);
+}
+
+setInterval(() => {
+	if(Date.now() - last_ping >= 500) {
+		reinitMessage();
+	}
+}, 100);
+
 socketData.onopen = () => {
-	socketData.send("Start");
+	reinitMessage();
 }

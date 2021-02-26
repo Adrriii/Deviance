@@ -1,10 +1,11 @@
 let uplot;
 let draw_data = [];
 let ctx;
+let series_exist = false;
 
 // initialize uPlot (it's amazing btw)
 function draw_init() {
-    let series = [];
+    series = [];
 
     // We need an extra series because ... otherwise theres a bug? idk, it works
     series.push(getDotSeries(theme.marv));
