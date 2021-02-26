@@ -1,79 +1,117 @@
 let uplot;
 let draw_data = [];
+let ctx;
 
 function draw_init() {
     let series = [];
 
-    series.push(getDotSeries(seriesColors.marv));
-    series.push(getDotSeries(seriesColors.perf));
-    series.push(getDotSeries(seriesColors.grea));
-    series.push(getDotSeries(seriesColors.good));
-    series.push(getDotSeries(seriesColors.badd));
-    series.push(getDotSeries(seriesColors.miss));
+    series.push(getDotSeries(theme.marv));
+    series.push(getDotSeries(theme.marv));
+    series.push(getDotSeries(theme.perf));
+    series.push(getDotSeries(theme.grea));
+    series.push(getDotSeries(theme.good));
+    series.push(getDotSeries(theme.badd));
+    series.push(getDotSeries(theme.miss));
     
     let opts = {
         width: width,
         height: height,
         series: series,
+        axes: [
+            {show: false,grid: {show: false}},
+            {show: false,grid: {show: false}},
+        ],
         legend: {
             show: false
         },
-        scale: {
-            x: {
-                time: false
+        scales: {
+            y: {
+                range: { 
+                    min: -167, 
+                    max: 167
+                }
             }
-        }
+        },
+        plugins: [
+            interface_plugin()
+        ]
     };
 
     uplot = new uPlot(opts, draw_data, document.body);
+    demo()
 }
 
-let seriesColors = {
-    marv: "rgba(126, 165, 203, 1)",
-    perf: "rgba(192, 164, 48, 1)",
-    grea: "rgba(25, 164, 119, 1)",
-    good: "rgba(29, 141, 197, 1)",
-    badd: "rgba(255, 26, 179, 1)",
-    miss: "rgba(204, 41, 41, 1)",
+function getMsDistanceOverHeight(ms) {
+    return ms/167*(height/2);
+}
+
+function interface_plugin() {
+    function draw(u) {
+        u.ctx.save();
+
+        u.ctx.fillStyle = theme.marv;
+        u.ctx.fillRect(0, height/2, width, 1);
+
+        u.ctx.fillStyle = theme.perf;
+    
+        let dst = getMsDistanceOverHeight(od_300g_ms);
+        u.ctx.fillRect(0, height/2 + dst, width, 1);
+        u.ctx.fillRect(0, height/2 - dst, width, 1);
+
+        u.ctx.fillStyle = theme.grea;
+    
+        dst = getMsDistanceOverHeight(od_300_ms);
+        u.ctx.fillRect(0, height/2 + dst, width, 1);
+        u.ctx.fillRect(0, height/2 - dst, width, 1);
+
+        u.ctx.fillStyle = theme.good;
+    
+        dst = getMsDistanceOverHeight(od_200_ms);
+        u.ctx.fillRect(0, height/2 + dst, width, 1);
+        u.ctx.fillRect(0, height/2 - dst, width, 1);
+
+        u.ctx.fillStyle = theme.badd;
+    
+        dst = getMsDistanceOverHeight(od_100_ms);
+        u.ctx.fillRect(0, height/2 + dst, width, 1);
+        u.ctx.fillRect(0, height/2 - dst, width, 1);
+        
+		u.ctx.restore();
+    }
+    
+    return {
+        hooks: {
+            draw: draw,
+        }
+    };
 }
 
 function getDotSeries(color) {
     draw_data.push([[],[]])
     return {
-        stroke:color,
-        fill:color,
+        stroke: color,
+        size: 5,
         paths: u => null,
         points: {
+            fill:color,
             space: 0
-        }
+        },
     }
 }
 
-let current_ms = 0;
+let demo_current_ms = 0;
 function getNextRandomNote() {
-    current_ms += Math.floor(Math.max(Math.random()*150 - 30, 0));
+    demo_current_ms += Math.floor(Math.max(Math.random()*150 - 30, 0));
     let res;
-    switch(Math.random()*13) {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-        case 5:
-            case 6:
-            case 7:
-            res = [current_ms, Math.random()*20 - 16];
-            break;
-        case 8:
-            case 9:
-            res = [current_ms, Math.random()*40 - 32];
-            break;
-        case 10:
-            res = [current_ms, Math.random()*97 - 46];
-            break;
-        default:
-            res = [current_ms, Math.random()*160 - 80];
-            break;
+    let tr = Math.random()*20;
+    if(tr < 13) {
+        res = [demo_current_ms, Math.random()*32 - 16]
+    } else if (tr < 17) {
+        res = [demo_current_ms, Math.random()*70 - 35]
+    } else if (tr < 19) {
+        res = [demo_current_ms, Math.random()*90 - 45]
+    } else {
+        res = [demo_current_ms, Math.random()*320 - 160]
     }
 
     res[1] = Math.floor(res[1]);
@@ -88,39 +126,43 @@ function appendNotes(notes) {
     uplot.setData(uPlot.join(draw_data));
 }
 
-// function demo() {
-//     setInterval(() => {
-//         for(let i=0; i<15; i++) {
-//             let next = getNextRandomNote();
-//             let judge = getJudgeFromError(next[1]);
+let demo_stopped = false;
+function demo() {
+    setInterval(() => {
+        if(demo_current_ms > 400000) demo_stopped = true;
+        if(demo_stopped) return;
+        for(let i=0; i<30; i++) {
+            let next = getNextRandomNote();
+            let judge = getJudgeFromError(next[1]);
         
-//             let index;
-//             switch(judge) {
-//                 case "marv":
-//                     index = 0;
-//                     break;
-//                 case "perf":
-//                     index = 1;
-//                     break;
-//                 case "grea":
-//                     index = 2;
-//                     break;
-//                 case "good":
-//                     index = 3;
-//                     break;
-//                 case "badd":
-//                     index = 4;
-//                     break;
-//                 case "miss":
-//                     index = 5;
-//                     break;
-//             }
+            let index;
+            switch(judge) {
+                case "marv":
+                    index = 0;
+                    break;
+                case "perf":
+                    index = 1;
+                    break;
+                case "grea":
+                    index = 2;
+                    break;
+                case "good":
+                    index = 3;
+                    break;
+                case "badd":
+                    index = 4;
+                    break;
+                case "miss":
+                    index = 5;
+                    break;
+            }
         
-//             draw_data[index][0].push(next[0]);
-//             draw_data[index][1].push(next[1]);
-//         }
-//     },1);
-//     setInterval(() => {
-//         uplot.setData(uPlot.join(draw_data));
-//     },33);
-// }
+            draw_data[index][0].push(next[0]);
+            draw_data[index][1].push(next[1]);
+        }
+    },10);
+    setInterval(() => {
+        if(demo_stopped) return;
+        uplot.setData(uPlot.join(draw_data));
+    },16);
+}
