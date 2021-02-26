@@ -11,6 +11,7 @@ const themes = {
         good: "rgba(29, 141, 197, 1)",
         badd: "rgba(255, 26, 179, 1)",
         miss: "rgba(204, 41, 41, 1)",
+        caret: "rgba(255, 255, 255, 1)",
     }
 }
 

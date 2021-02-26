@@ -24,7 +24,8 @@ socketData.onmessage = async event => {
 
 		if(data.osu_status != last_status) {
 			last_status = data.osu_status;
-			if(last_status != "Rank")
+			ranking = last_status == "Rank";
+			if(!ranking && last_status != "Playing")
 				resetAll();
 			console.log("Status changed to "+last_status+ " "+keys+"k");
 		}

@@ -40,7 +40,12 @@ function draw_init() {
 
 // trial and error don't touch
 function getMsDistanceOverHeight(ms) {
-    return ms/167*(height/2+10);
+    return ms/167*(height/2);
+}
+
+// trial and error don't touch
+function getMsDistanceOverWidth(ms) {
+    return ((ms-first_hitobject)/(last_hitobject-first_hitobject))*(width);
 }
 
 // coolest thing tbh
@@ -81,6 +86,17 @@ function interface_plugin() {
 
 		u.ctx.restore();
     }
+
+    function drawOver(u) {
+        u.ctx.save();
+
+        let dst = getMsDistanceOverWidth(current_time);
+        u.ctx.fillStyle = theme.caret;
+
+        u.ctx.fillRect(dst, 0, 1, height);
+        
+		u.ctx.restore();
+    }
     
     return {
         hooks: {
@@ -88,7 +104,7 @@ function interface_plugin() {
             // draw clear is before points
             drawClear: init,
             // draw is after
-
+            draw: drawOver,
             // didnt look into it further
         }
     };

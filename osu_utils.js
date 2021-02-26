@@ -41,6 +41,8 @@ function GetBeatmapCache(song_path) {
 }
 
 // it's time to appreciate the osu format for mania
+let last_hitobject = 0;
+let first_hitobject = 1000000;
 function parseHitObjects() {
 	let objects = false;
     if(!beatmap) return;
@@ -60,13 +62,18 @@ function parseHitObjects() {
 				columns[current_column] = [];
 			}
 
+            let t = parseInt(d[2]);
 			columns[current_column].push({
 				x: d[0],
 				y: d[1],
-				time: d[2],
+				time: t,
 				ln: ln_end,
 				errors: []
 			});
+
+            if(last_hitobject < t) last_hitobject = t;
+            if(ln_end !== false && last_hitobject < ln_end) last_hitobject = ln_end;
+            if(first_hitobject > t) first_hitobject = t;
 		}
 
 		if(line == "[HitObjects]") objects = true;
@@ -99,6 +106,8 @@ let processed_hits = []; // all the notes that have been pressed and possibly re
 let state = {}; // the last state of each key
 
 function resetAll() {
+    last_hitobject = 0;
+    first_hitobject = 1000000;
     columns = {};
     replay_parse_index = 2;
     replay_hits = [];
@@ -118,8 +127,9 @@ function resetAll() {
 
 // Add latest hits from current replay data
 // needs up to date data
+let ranking = false;
 function parseReplayHits() {
-    if(replay_parse_index > data.hit_events.length) resetAll();
+    if(!ranking && replay_parse_index > data.hit_events.length) resetAll();
     for(replay_parse_index; replay_parse_index < data.hit_events.length; replay_parse_index++) {
         let event = data.hit_events[replay_parse_index];
 
