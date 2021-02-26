@@ -43,7 +43,7 @@ function draw_init() {
     };
 
     uplot = new uPlot(opts, draw_data, document.body);
-    demo()
+    //demo()
 }
 
 // trial and error don't touch
@@ -115,14 +115,61 @@ function getDotSeries(color) {
     }
 }
 
-// notes are a pair [offset,error]
+function addProcessedHitsToData() {
+    let toAdd = [];
+
+    let hit;
+    while(hit = processed_hits.shift()) {
+
+        let hitError = hit.errors[0];
+
+        // avg of errors for LNs
+        if(hit.ln !== false) hit.errors.reduce((a,b)=> a+b,0) / hit.errors.length;
+
+        toAdd.push([getIndexOfJudge(getJudgeFromError(hitError)),[hit.ln === false ? hit.time : hit.ln, hitError]]);
+    }
+
+    appendNotes(toAdd);
+}
+
+// notes are [0,[offset,error]]
 // index starts at 0 (marv)
-function appendNotes(index, notes) {
-    for(let i = 0; i <= notes.length; i++) {
-        draw_data[index][0].push(notes[i][0]);
-        draw_data[index][1].push(notes[i][1]);
+function appendNotes(notes) {
+    let index;
+    let note;
+    for(let i = 0; i < notes.length; i++) {
+        index = notes[i][0];
+        note = notes[i][1];
+
+        draw_data[index][0].push(parseInt(note[0]));
+        draw_data[index][1].push(note[1]);
     }
     uplot.setData(uPlot.join(draw_data));
+}
+
+function getIndexOfJudge(judge) {
+    let index = -1;
+    switch(judge) {
+        case "marv":
+            index = 0;
+            break;
+        case "perf":
+            index = 1;
+            break;
+        case "grea":
+            index = 2;
+            break;
+        case "good":
+            index = 3;
+            break;
+        case "badd":
+            index = 4;
+            break;
+        case "miss":
+            index = 5;
+            break;
+    }
+    return index;
 }
 
 // Demo stuff
@@ -154,28 +201,7 @@ function demo() {
         for(let i=0; i<30; i++) {
             let next = getNextRandomNote();
             let judge = getJudgeFromError(next[1]);
-        
-            let index;
-            switch(judge) {
-                case "marv":
-                    index = 0;
-                    break;
-                case "perf":
-                    index = 1;
-                    break;
-                case "grea":
-                    index = 2;
-                    break;
-                case "good":
-                    index = 3;
-                    break;
-                case "badd":
-                    index = 4;
-                    break;
-                case "miss":
-                    index = 5;
-                    break;
-            }
+            let index = getIndexOfJudge(judge);
         
             draw_data[index][0].push(next[0]);
             draw_data[index][1].push(next[1]);

@@ -13,11 +13,26 @@ socket.onmessage = async event => {
     GosuHandle(event);
 }
 
+// This is sort of the main loop of the program
+// It's triggered after sending a message to the websocket, when getting the reply
 socketData.onmessage = async event => {
 	try {
 		data = JSON.parse(event.data);
 		console.log("Obtained data");
+
+		if(!data.hit_events) {
+			socketData.send("Start");
+			return;
+		}
+
+		GetBeatmapCache(osu_status.menu.bm.path.folder + "/" + osu_status.menu.bm.path.file).then(() => {
+			tryProcess();
+		})
 	} catch(e) {}
 }
 
 draw_init();
+
+socketData.onopen = () => {
+	socketData.send("Start");
+}

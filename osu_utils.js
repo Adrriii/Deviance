@@ -28,7 +28,8 @@ function GetBeatmapCache(song_path) {
             type: "GET",
             crossDomain: true,
             success: function (response) {
-				resetAll();
+                beatmap = response;
+                resetAll();
 				resolve();
             },
             error: function (xhr, status) {
@@ -43,7 +44,7 @@ function GetBeatmapCache(song_path) {
 // it's time to appreciate the osu format for mania
 function parseHitObjects() {
 	let objects = false;
-	raw_beatmap_lines.split(/\r?\n/).forEach((line) => {
+	beatmap.split(/\r?\n/).forEach((line) => {
 		if(objects && line) {
 			let d = line.split(",");
 			let ln_end = false;
@@ -78,24 +79,19 @@ function getColumnFromX(keys, x) {
     return Math.trunc(x/512*keys);
 }
 
-// replay processing madness
-// uses all the methods below to work on the replay data
-function GenerateFromReplay(osu_status) {
-	if(!data.hit_events) return;
-	
-	GetBeatmapCache(osu_status.menu.bm.path.folder + "/" + osu_status.menu.bm.path.file).then(() => {
-		if(beatmap == "working") return;
-		
-		if(replay_parse_index > data.hit_events.length) {
-			resetAll();
-		}
+// Will try to process the data until beatmap is ready then loop over
+function tryProcess() {
+    if(beatmap == "working") {
+        setTimeout(tryProcess, 100);
+        return;
+    }
 
-        parseReplayHits();
-        processHits();
+    parseReplayHits();
+    processHits();
+    addProcessedHitsToData();
 
-	}).catch(() => {})
+    socketData.send("Continue");
 }
-
 
 let replay_parse_index = 2; // ignore first 2 lines ; this is used to not look at the entire replay each time
 let replay_hits = []; // all the raw press and release from the replay
@@ -122,9 +118,6 @@ function resetAll() {
 // needs up to date data
 function parseReplayHits() {
     for(replay_parse_index; replay_parse_index < data.hit_events.length; replay_parse_index++) {
-        if(replay_parse_index%Math.floor(data.hit_events.length/100) == 0)
-            console.log("Currently at "+(replay_parse_index/data.hit_events.length)*100+"% of replay");
-
         let event = data.hit_events[replay_parse_index];
 
         if(event.X<100 && event.X>=0 && event.X != state && event.TimeStamp >= -100000 && event.TimeStamp <= 100000000) {
@@ -156,8 +149,6 @@ function parseReplayHits() {
 // Consumes the replay hits and applicable notes to find hit errors
 function processHits() {
     let hit;
-    let changed = false;
-    let change_log = null;
     while(hit = replay_hits.shift()) {
         if(!columns[hit.column].length > 0) continue;
         let note = columns[hit.column][0];
@@ -181,14 +172,7 @@ function processHits() {
             processed_hits.push(note);
             if(note.ln !== false && hit.type != "release") continue;
             columns[hit.column].shift();
-            
-            change_log = note;
-            changed = true;
         }
-    }
-    if(changed) {
-        plot_update = true;
-        console.log(change_log);
     }
 }
 
