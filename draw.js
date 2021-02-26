@@ -42,12 +42,15 @@ function draw_init() {
 }
 
 function getMsDistanceOverHeight(ms) {
-    return ms/167*(height/2);
+    return ms/167*(height/2+10);
 }
 
 function interface_plugin() {
-    function draw(u) {
+    function init(u) {
         u.ctx.save();
+
+        u.ctx.fillStyle = theme.background;
+        u.ctx.fillRect(0, 0, width, height);
 
         u.ctx.fillStyle = theme.marv;
         u.ctx.fillRect(0, height/2, width, 1);
@@ -75,13 +78,13 @@ function interface_plugin() {
         dst = getMsDistanceOverHeight(od_100_ms);
         u.ctx.fillRect(0, height/2 + dst, width, 1);
         u.ctx.fillRect(0, height/2 - dst, width, 1);
-        
+
 		u.ctx.restore();
     }
     
     return {
         hooks: {
-            draw: draw,
+            drawClear: init,
         }
     };
 }
