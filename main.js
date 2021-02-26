@@ -42,8 +42,14 @@ socketData.onmessage = async event => {
 
 draw_init();
 
+let sent = false;
 function reinitMessage() {
-	setTimeout(() => {socketData.send("Start");}, 250);
+	if(sent) return
+	sent = true;
+	setTimeout(() => {
+		sent = false;
+		socketData.send("Start");
+	}, 250);
 }
 
 setInterval(() => {
