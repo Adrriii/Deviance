@@ -66,6 +66,7 @@ function parseHitObjects() {
 			columns[current_column].push({
 				x: d[0],
 				y: d[1],
+                column: current_column,
 				time: t,
 				ln: ln_end,
 				errors: []
@@ -108,6 +109,7 @@ let state = {}; // the last state of each key
 function resetAll() {
     last_hitobject = 0;
     first_hitobject = 1000000;
+    last_time = null;
     columns = {};
     replay_parse_index = 2;
     replay_hits = [];
@@ -130,6 +132,7 @@ function resetAll() {
 // needs up to date data
 let ranking = false;
 let replay = false;
+let last_time = null;
 function parseReplayHits() {
     if(!ranking && replay_parse_index > data.hit_events.length) resetAll();
     for(replay_parse_index; replay_parse_index < data.hit_events.length; replay_parse_index++) {
@@ -137,6 +140,8 @@ function parseReplayHits() {
 
         if(event.X<100 && event.X>=0 && event.X != state && event.TimeStamp >= -100000 && event.TimeStamp <= 100000000) {
             let current = numToString(event.X, 2, keys);
+            if((event.TimeStamp > last_time + 30000 || event.TimeStamp < last_time -10000) && (last_time !== null)) continue;
+            last_time = event.TimeStamp;
 
             for(let k = 0; k < keys; k++) {
                 let current_k = current.charAt(k);
@@ -156,6 +161,7 @@ function parseReplayHits() {
                     state[k] = current_k;
                     replay_hits.push(hit);
 
+                    replay = false;
                     if(event.TimeStamp > current_time+1000) replay = true;
                 }
             }
@@ -175,38 +181,103 @@ function processHit(hit) {
     if(!columns[hit.column]) return; // this is in case the map has no note on the column ... #timingtest
     if(!columns[hit.column].length > 0) return;
     let note = columns[hit.column][0];
+
+    let hit_case;
     let hitError;
-    
-    if(hit.type == "press") {
-        hitError = hit.time - note.time;
-    } else if (hit.type == "release") {
-        if(note.ln === false || note.errors.length == 0) return; 
-        hitError = hit.time - note.ln;
-    }
-    
-    let found = false;
-    let lnbreak = false;
-    if (hitError >= -(od_miss_ms)){
-        found = true;
-    } else if(hit.type == "release" && hit.time >= note.time && hit.ln!==false) {
-        found = true;
-        lnbreak = true;
-    }
+    let hitReleaseError;
 
-    if(found) {
-        if(hitError > od_miss_ms) hitError = od_miss_ms;
-        if(lnbreak) {
-            note.errors = [od_100_ms+3];
-        }
-        else {
-            note.errors.push(hitError);
-        }
-        if(note.ln !== false && hit.type != "release" && !lnbreak) return;
-        processed_hits.push(note);
-        columns[hit.column].shift();
-    }
+    if(hit.type == "press" && note.ln === false) hit_case = "rice";
+    if(hit.type == "release" && note.ln === false) hit_case = "release_skip";
+    if(hit.type == "press" && note.ln !== false) hit_case = "base";
+    if(hit.type == "release" && note.ln !== false) hit_case = "release";
 
-    if(hitError >= od_miss_ms) processHit(hit);
+    //console.log("Column"+hit.column+" | "+hit.time+"ms -> "+note.time+":"+note.ln+" - "+hit_case)
+    
+    switch(hit_case) {
+        // Simplest case, rice
+        case "rice":
+            hitError = hit.time - note.time;
+
+            if (hitError >= -(od_miss_ms)){
+                // If we skipped notes, add a miss and continue recursively
+                if(hitError > od_50_ms) { // test with >=
+                    note.errors.push(od_miss_ms);
+                    processed_hits.push(note);
+                    columns[hit.column].shift();
+                    processHit(hit);
+                    return;
+                }
+
+                // Otherwise, juste assign the note
+                note.errors.push(hitError);
+                processed_hits.push(note);
+                columns[hit.column].shift();
+                return;
+            }
+            break;
+        case "base":
+            hitError = hit.time - note.time;
+            hitReleaseError = hit.time - note.ln;
+
+            if (hitError >= -(od_miss_ms)){
+                // If we skipped the whole long note, add a miss and continue recursively
+                if(hitReleaseError > 0) { // needs more testing
+                    note.errors.push(od_miss_ms);
+                    processed_hits.push(note);
+                    columns[hit.column].shift();
+                    processHit(hit);
+                    return;
+                }
+
+                // If we tap during the long note but too late, we can still get a 50 at max.
+                // I handle this by not filling the long note.
+                if (hitError >= od_50_ms) {
+                    note.errors.push(od_miss_ms);
+                    return;
+                }
+
+                // Otherwise, just assign the first judgement for the LN
+                note.errors.push(hitError);
+                return;
+            }
+            break;
+        case "release":
+            hitReleaseError = hit.time - note.ln;
+
+            // Ignore releases before a base
+            if(hit.time < note.time) return;
+
+            // Theres no base for this timing, it's always a miss. But we can only add it after the note passes entirely
+            if(note.errors.length == 0 && hitReleaseError > od_50_ms) {
+                note.errors.push(od_miss_ms);
+                processed_hits.push(note);
+                columns[hit.column].shift();
+                // no hit reprocess cause a release in this stage won't ever do anything
+            }
+
+            // Release too soon (break)
+            // test if this timing is correct
+            if(hitReleaseError <= -od_50_ms) {
+                note.errors = [od_100_ms+3];
+                processed_hits.push(note);
+                columns[hit.column].shift();
+                return;
+            }
+            
+            if(hitReleaseError > -od_50_ms) {
+                if(note.errors.length == 0) {
+                    // The base was not hit, so we ignore this release.
+                    return;
+                }
+                note.errors.push(hitReleaseError);
+                processed_hits.push(note);
+                columns[hit.column].shift();
+                return;
+            }
+            break;
+        default:
+        break;
+    }
 }
 
 // these are used to process bitwise keyboard state
